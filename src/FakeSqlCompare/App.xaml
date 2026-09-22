@@ -1,0 +1,17 @@
+﻿<Application x:Class="FakeSqlCompare.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:FakeSqlCompare"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/Dark.xaml"/>
+                <ResourceDictionary Source="Themes/Controls.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+            <local:InverseBoolToVisConverter x:Key="InvBoolToVis"/>
+            <local:IsErrorLogConverter x:Key="IsErrorLog"/>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

@@ -1,0 +1,19 @@
+<Window x:Class="FakeSqlCompare.AliasPromptWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="另存为"
+        Width="440" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize" ShowInTaskbar="False"
+        Background="{DynamicResource WindowBackground}"
+        Foreground="{DynamicResource TextPrimary}"
+        FontFamily="Segoe UI" FontSize="13">
+    <StackPanel Margin="20">
+        <TextBlock Text="连接别名" Foreground="{DynamicResource TextMuted}"/>
+        <TextBox x:Name="AliasBox" Margin="0,8,0,16"/>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Style="{StaticResource GhostButton}" Content="取消" IsCancel="True" Margin="0,0,8,0"/>
+            <Button Style="{StaticResource PrimaryButton}" Content="保存" IsDefault="True" Click="Ok_Click"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

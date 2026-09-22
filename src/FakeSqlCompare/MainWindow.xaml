@@ -1,0 +1,527 @@
+﻿<Window x:Class="FakeSqlCompare.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:FakeSqlCompare"
+        Title="FakeSqlCompare — SQL Server 结构对比"
+        Height="820" Width="1280" MinHeight="640" MinWidth="1040"
+        Background="{DynamicResource WindowBackground}"
+        Foreground="{DynamicResource TextPrimary}"
+        FontFamily="Segoe UI" FontSize="13"
+        UseLayoutRounding="True">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="56"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="{DynamicResource HeaderBackground}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+            <DockPanel Margin="16,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="FakeSqlCompare" FontWeight="SemiBold" FontSize="16"
+                               Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center"/>
+                    <Border Margin="12,0,0,0" Padding="8,2" CornerRadius="4"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                        <TextBlock Text="{Binding ModeBadge}" FontSize="11" Foreground="{DynamicResource TextMuted}"/>
+                    </Border>
+                </StackPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{StaticResource IconButton}" Command="{Binding ThemeCommand}"
+                            ToolTip="{Binding ThemeToolTip}" Margin="0,0,8,0">
+                        <Grid>
+                            <Path Fill="{DynamicResource TextPrimary}" Stretch="Uniform" Width="18" Height="18"
+                                  Visibility="{Binding IsDark, Converter={StaticResource BoolToVis}}"
+                                  Data="M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,2L14.4,5.4C13.6,5.15 12.8,5 12,5C11.2,5 10.4,5.15 9.6,5.4L12,2M3.3,7L7.1,6.3C6.4,7 5.85,7.85 5.5,8.8L3.3,7M3.3,17L5.5,15.2C5.85,16.15 6.4,17 7.1,17.7L3.3,17M20.7,7L18.5,8.8C18.15,7.85 17.6,7 16.9,6.3L20.7,7M20.7,17L16.9,17.7C17.6,17 18.15,16.15 18.5,15.2L20.7,17M12,22L9.6,18.6C10.4,18.85 11.2,19 12,19C12.8,19 13.6,18.85 14.4,18.6L12,22Z"/>
+                            <Path Fill="{DynamicResource TextPrimary}" Stretch="Uniform" Width="18" Height="18"
+                                  Visibility="{Binding IsLight, Converter={StaticResource BoolToVis}}"
+                                  Data="M17.75,4.09L15.22,6.03L16.13,9.09L13.5,7.28L10.87,9.09L11.78,6.03L9.25,4.09L12.44,4L13.5,1.32L14.56,4L17.75,4.09M21.25,10.96L19.61,12.25L20.2,14.29L18.5,13.08L16.8,14.29L17.39,12.25L15.75,10.96L17.97,10.89L18.5,9.09L19.03,10.89L21.25,10.96M18.5,19.14C17.86,19.5 17.18,19.78 16.46,19.93C14.66,20.31 12.72,20.13 11.07,19.31C8,17.79 6.4,14.37 7.07,11.12C7.18,10.58 7.35,10.07 7.56,9.58C6.17,10.5 5.1,11.87 4.61,13.5C3.45,17.31 5.23,21.39 9.04,22.55C12.85,23.71 16.93,21.93 18.09,18.12C18.3,17.43 18.43,16.71 18.5,16C18.53,17.09 18.57,18.14 18.5,19.14Z"/>
+                        </Grid>
+                    </Button>
+                    <Button Style="{StaticResource GhostButton}" Content="返回连接"
+                            Command="{Binding HomeCommand}"
+                            Visibility="{Binding ShowBack, Converter={StaticResource BoolToVis}}"/>
+                </StackPanel>
+                <TextBlock Text="{Binding HeaderHint}" VerticalAlignment="Center" Margin="20,0"
+                           Foreground="{DynamicResource TextMuted}" TextTrimming="CharacterEllipsis"/>
+            </DockPanel>
+        </Border>
+
+        <!-- Connect -->
+        <ScrollViewer Grid.Row="1" Visibility="{Binding IsConnect, Converter={StaticResource BoolToVis}}">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Width="920" Margin="24">
+                <TextBlock Text="对比两个 SQL Server 库" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                <TextBlock Text="源是标准，目标会被更新。默认不会删除目标多出来的对象。"
+                           Foreground="{DynamicResource TextMuted}" HorizontalAlignment="Center" Margin="0,8,0,16"/>
+                <DockPanel Margin="0,0,0,16">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Style="{StaticResource GhostButton}" Content="保存"
+                                Command="{Binding SaveProjectCommand}"/>
+                        <Button Style="{StaticResource GhostButton}" Content="另存为" Margin="8,0,0,0"
+                                Command="{Binding SaveProjectAsCommand}"/>
+                        <Button Style="{StaticResource GhostButton}" Content="删除" Margin="8,0,0,0"
+                                Command="{Binding DeleteProjectCommand}"
+                                Visibility="{Binding HasSelectedProject, Converter={StaticResource BoolToVis}}"/>
+                    </StackPanel>
+                    <Grid Margin="0,0,12,0">
+                        <ComboBox ItemsSource="{Binding Projects}" DisplayMemberPath="Name"
+                                  SelectedItem="{Binding SelectedProject}"/>
+                        <TextBlock Text="暂无已保存的连接" IsHitTestVisible="False"
+                                   VerticalAlignment="Center" Margin="12,0,32,0"
+                                   Foreground="{DynamicResource TextFaint}"
+                                   Visibility="{Binding HasProjects, Converter={StaticResource InvBoolToVis}}"/>
+                    </Grid>
+                </DockPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="72"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="源" FontWeight="SemiBold" Foreground="{DynamicResource InfoBrush}"/>
+                            <Label Content="服务器" Margin="0,12,0,0"/>
+                            <TextBox Text="{Binding Source.Server, UpdateSourceTrigger=PropertyChanged}"/>
+                            <Label Content="身份验证" Margin="0,10,0,0"/>
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton Content="Windows" IsChecked="{Binding Source.IsWindowsAuth}" GroupName="srcAuth"/>
+                                <RadioButton Content="SQL 登录" IsChecked="{Binding Source.IsSqlAuth}" GroupName="srcAuth"/>
+                            </StackPanel>
+                            <Grid Visibility="{Binding Source.IsSqlAuth, Converter={StaticResource BoolToVis}}" Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/><ColumnDefinition Width="8"/><ColumnDefinition/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <Label Content="用户"/>
+                                    <TextBox Text="{Binding Source.User, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <Label Content="密码"/>
+                                    <PasswordBox local:PasswordBoxHelper.BindPassword="True"
+                                                 local:PasswordBoxHelper.BoundPassword="{Binding Source.Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                            </Grid>
+                            <Label Content="数据库" Margin="0,10,0,0"/>
+                            <ComboBox IsEditable="True" ItemsSource="{Binding SourceDatabases}"
+                                      Text="{Binding Source.Database, UpdateSourceTrigger=PropertyChanged}"/>
+                            <Button Margin="0,14,0,0" HorizontalAlignment="Left" Style="{StaticResource GhostButton}"
+                                    Content="{Binding Source.TestLabel}" Command="{Binding TestSourceCommand}"/>
+                        </StackPanel>
+                    </Border>
+                    <Button Grid.Column="1" Style="{StaticResource GhostButton}" Padding="8,12"
+                            Command="{Binding SwapSidesCommand}" ToolTip="互换源和目标"
+                            VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <TextBlock Text="⇄" FontSize="22" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource AccentBrush}"/>
+                    </Button>
+                    <Border Grid.Column="2" Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="目标（将被更新）" FontWeight="SemiBold" Foreground="{DynamicResource WarnBrush}"/>
+                            <Label Content="服务器" Margin="0,12,0,0"/>
+                            <TextBox Text="{Binding Target.Server, UpdateSourceTrigger=PropertyChanged}"/>
+                            <Label Content="身份验证" Margin="0,10,0,0"/>
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton Content="Windows" IsChecked="{Binding Target.IsWindowsAuth}" GroupName="tgtAuth"/>
+                                <RadioButton Content="SQL 登录" IsChecked="{Binding Target.IsSqlAuth}" GroupName="tgtAuth"/>
+                            </StackPanel>
+                            <Grid Visibility="{Binding Target.IsSqlAuth, Converter={StaticResource BoolToVis}}" Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/><ColumnDefinition Width="8"/><ColumnDefinition/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <Label Content="用户"/>
+                                    <TextBox Text="{Binding Target.User, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <Label Content="密码"/>
+                                    <PasswordBox local:PasswordBoxHelper.BindPassword="True"
+                                                 local:PasswordBoxHelper.BoundPassword="{Binding Target.Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+                            </Grid>
+                            <Label Content="数据库" Margin="0,10,0,0"/>
+                            <ComboBox IsEditable="True" ItemsSource="{Binding TargetDatabases}"
+                                      Text="{Binding Target.Database, UpdateSourceTrigger=PropertyChanged}"/>
+                            <Button Margin="0,14,0,0" HorizontalAlignment="Left" Style="{StaticResource GhostButton}"
+                                    Content="{Binding Target.TestLabel}" Command="{Binding TestTargetCommand}"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+                <Button Style="{StaticResource PrimaryButton}" HorizontalAlignment="Stretch" Margin="0,20,0,0"
+                        FontSize="15" Padding="16,12" Command="{Binding CompareCommand}">
+                    <TextBlock>
+                        <Run Text="开始对比  "/><Run Text="{Binding Source.Database, Mode=OneWay}"/>
+                        <Run Text=" → "/><Run Text="{Binding Target.Database, Mode=OneWay}"/>
+                    </TextBlock>
+                </Button>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Comparing -->
+        <Grid Grid.Row="1" Visibility="{Binding IsComparing, Converter={StaticResource BoolToVis}}">
+            <Border Style="{StaticResource Card}" Width="420" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="24">
+                <StackPanel>
+                    <TextBlock Text="对比进行中" FontSize="18" FontWeight="SemiBold"/>
+                    <ProgressBar Height="8" Margin="0,14,0,16" Minimum="0" Maximum="100"
+                                 Value="{Binding ComparePercent, Mode=OneWay}"
+                                 IsIndeterminate="{Binding CompareIsIndeterminate}"
+                                 Foreground="{DynamicResource AccentBrush}"
+                                 Background="{DynamicResource SurfaceAltBrush}"/>
+                    <ItemsControl ItemsSource="{Binding CompareStepItems}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="0,6">
+                                    <Ellipse Width="10" Height="10" Margin="0,0,8,0" VerticalAlignment="Center">
+                                        <Ellipse.Style>
+                                            <Style TargetType="Ellipse">
+                                                <Setter Property="Fill" Value="{DynamicResource BorderBrush}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Done}" Value="True">
+                                                        <Setter Property="Fill" Value="{DynamicResource AccentBrush}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Current}" Value="True">
+                                                        <Setter Property="Fill" Value="{DynamicResource AccentBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
+                                    </Ellipse>
+                                    <TextBlock Text="{Binding Text}" Foreground="{DynamicResource TextMuted}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Workspace -->
+        <Grid Grid.Row="1" Visibility="{Binding IsWorkspace, Converter={StaticResource BoolToVis}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="48"/>
+                <RowDefinition Height="*" MinHeight="160"/>
+                <RowDefinition Height="0.9*" MinHeight="220"/>
+                <RowDefinition Height="56"/>
+            </Grid.RowDefinitions>
+            <Border Background="{DynamicResource HeaderBackground}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+                <DockPanel Margin="12,0">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Margin="0,0,10,0">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource FilterChip}" Content="全部" Command="{Binding SetTypeCommand}" CommandParameter="全部"/>
+                                <Button Style="{StaticResource FilterChip}" Content="表" Command="{Binding SetTypeCommand}" CommandParameter="表"/>
+                                <Button Style="{StaticResource FilterChip}" Content="视图" Command="{Binding SetTypeCommand}" CommandParameter="视图"/>
+                                <Button Style="{StaticResource FilterChip}" Content="存储过程" Command="{Binding SetTypeCommand}" CommandParameter="存储过程"/>
+                                <Button Style="{StaticResource FilterChip}" Content="函数" Command="{Binding SetTypeCommand}" CommandParameter="函数"/>
+                            </StackPanel>
+                        </Border>
+                        <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource FilterChip}" Content="仅差异" Command="{Binding SetStatusCommand}" CommandParameter="diff"/>
+                                <Button Style="{StaticResource FilterChip}" Content="含相同" Command="{Binding SetStatusCommand}" CommandParameter="all"/>
+                                <Button Style="{StaticResource FilterChip}" Content="已勾选" Command="{Binding SetStatusCommand}" CommandParameter="selected"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Style="{StaticResource GhostButton}" Content="互换源/目标" Command="{Binding SwapSidesCommand}" Margin="0,0,8,0"/>
+                        <Button Style="{StaticResource GhostButton}" Content="重新对比" Command="{Binding RecheckCommand}" Margin="0,0,8,0"/>
+                        <Button Style="{StaticResource GhostButton}" Content="勾选安全差异" Command="{Binding SelectSafeCommand}" Margin="0,0,8,0"/>
+                        <Button Style="{StaticResource GhostButton}" Content="清空勾选" Command="{Binding ClearSelectCommand}"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <DockPanel Grid.Row="1">
+                <Grid DockPanel.Dock="Top" Margin="16,8,16,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="36"/><ColumnDefinition Width="2*"/><ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="90"/><ColumnDefinition Width="120"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="1" Text="对象" Foreground="{DynamicResource TextMuted}"/>
+                    <TextBlock Grid.Column="2" Text="类型" Foreground="{DynamicResource TextMuted}"/>
+                    <TextBlock Grid.Column="3" Text="状态" Foreground="{DynamicResource TextMuted}"/>
+                    <TextBlock Grid.Column="4" Text="部署动作" Foreground="{DynamicResource TextMuted}"/>
+                </Grid>
+                <ListBox ItemsSource="{Binding FilteredObjects}" SelectedItem="{Binding SelectedObject}"
+                         HorizontalContentAlignment="Stretch">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="Margin" Value="0"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <Border x:Name="bd" Background="{TemplateBinding Background}" Padding="16,8" BorderThickness="0,0,0,1"
+                                            BorderBrush="{DynamicResource BorderBrush}">
+                                        <ContentPresenter/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="bd" Property="Background" Value="{DynamicResource RowHoverBrush}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="bd" Property="Background" Value="{DynamicResource RowSelectedBrush}"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="36"/><ColumnDefinition Width="2*"/><ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="90"/><ColumnDefinition Width="120"/>
+                                </Grid.ColumnDefinitions>
+                                <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}"
+                                          IsEnabled="{Binding CanToggle}"
+                                          VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="{Binding FullName}" FontFamily="Consolas" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Text="{Binding Type}" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"/>
+                                <Border Grid.Column="3" CornerRadius="4" Padding="8,2" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                        Background="{DynamicResource SurfaceAltBrush}" BorderThickness="1">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="BorderBrush" Value="{DynamicResource TextMuted}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Status}" Value="Different">
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource WarnBrush}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Status}" Value="SourceOnly">
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Status}" Value="TargetOnly">
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource DangerBrush}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding StatusLabel}" FontSize="11">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Status}" Value="Different">
+                                                        <Setter Property="Foreground" Value="{DynamicResource WarnBrush}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Status}" Value="SourceOnly">
+                                                        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Status}" Value="TargetOnly">
+                                                        <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                                <TextBlock Grid.Column="4" Text="{Binding Action}" VerticalAlignment="Center"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+
+            <Border Grid.Row="2" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0"
+                    Background="{DynamicResource SurfaceAltBrush}">
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Margin="12,8">
+                        <TextBlock Text="{Binding SelectedObject.FullName}" FontFamily="Consolas" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextMuted}"/>
+                        <TextBlock DockPanel.Dock="Right" Text="绿=新增 · 红=缺失 · 黄=变更" FontSize="11"
+                                   Foreground="{DynamicResource TextFaint}" VerticalAlignment="Center"/>
+                        <Border Margin="16,0,0,0" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6" HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource ChipButton}" Content="并排定义" Command="{Binding ShowDefCommand}"/>
+                                <Button Style="{StaticResource ChipButton}" Content="将执行脚本" Command="{Binding ShowScriptTabCommand}"/>
+                            </StackPanel>
+                        </Border>
+                    </DockPanel>
+                    <Grid>
+                        <Grid Visibility="{Binding ShowDef, Converter={StaticResource BoolToVis}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/><ColumnDefinition Width="1"/><ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Top" Margin="12,4" FontSize="11" Foreground="{DynamicResource InfoBrush}">
+                                    <Run Text="源 · "/><Run Text="{Binding Source.Database, Mode=OneWay}"/>
+                                </TextBlock>
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl ItemsSource="{Binding SelectedObject.SourceLines}" Margin="8,0"
+                                                  HorizontalAlignment="Stretch">
+                                        <ItemsControl.ItemContainerStyle>
+                                            <Style TargetType="ContentPresenter">
+                                                <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                                            </Style>
+                                        </ItemsControl.ItemContainerStyle>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Padding="6,1" HorizontalAlignment="Stretch">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Kind}" Value="Add">
+                                                                    <Setter Property="Background" Value="{DynamicResource DiffAddBrush}"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Kind}" Value="Del">
+                                                                    <Setter Property="Background" Value="{DynamicResource DiffDelBrush}"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Kind}" Value="Chg">
+                                                                    <Setter Property="Background" Value="{DynamicResource DiffChgBrush}"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <TextBlock FontFamily="Consolas" FontSize="12">
+                                                        <Run Text="{Binding Marker, Mode=OneWay}" Foreground="{DynamicResource TextFaint}"/>
+                                                        <Run Text="  "/><Run Text="{Binding Text, Mode=OneWay}"/>
+                                                    </TextBlock>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </DockPanel>
+                            <Border Grid.Column="1" Background="{DynamicResource BorderBrush}"/>
+                            <DockPanel Grid.Column="2">
+                                <TextBlock DockPanel.Dock="Top" Margin="12,4" FontSize="11" Foreground="{DynamicResource WarnBrush}">
+                                    <Run Text="目标 · "/><Run Text="{Binding Target.Database, Mode=OneWay}"/>
+                                </TextBlock>
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl ItemsSource="{Binding SelectedObject.TargetLines}" Margin="8,0"
+                                                  HorizontalAlignment="Stretch">
+                                        <ItemsControl.ItemContainerStyle>
+                                            <Style TargetType="ContentPresenter">
+                                                <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                                            </Style>
+                                        </ItemsControl.ItemContainerStyle>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Padding="6,1" HorizontalAlignment="Stretch">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Kind}" Value="Add">
+                                                                    <Setter Property="Background" Value="{DynamicResource DiffAddBrush}"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Kind}" Value="Del">
+                                                                    <Setter Property="Background" Value="{DynamicResource DiffDelBrush}"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Kind}" Value="Chg">
+                                                                    <Setter Property="Background" Value="{DynamicResource DiffChgBrush}"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <TextBlock FontFamily="Consolas" FontSize="12">
+                                                        <Run Text="{Binding Marker, Mode=OneWay}" Foreground="{DynamicResource TextFaint}"/>
+                                                        <Run Text="  "/><Run Text="{Binding Text, Mode=OneWay}"/>
+                                                    </TextBlock>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </DockPanel>
+                        </Grid>
+                        <ScrollViewer Visibility="{Binding ShowScript, Converter={StaticResource BoolToVis}}">
+                            <TextBox Text="{Binding SelectedScript, Mode=OneWay}" IsReadOnly="True" FontFamily="Consolas"
+                                     FontSize="12" BorderThickness="0" TextWrapping="Wrap"
+                                     Background="Transparent" Padding="16"/>
+                        </ScrollViewer>
+                    </Grid>
+                </DockPanel>
+            </Border>
+
+            <Border Grid.Row="3" Background="{DynamicResource HeaderBackground}"
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+                <DockPanel Margin="16,0">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Style="{StaticResource GhostButton}" Content="导出脚本" Command="{Binding ExportScriptCommand}" Margin="0,0,8,0"/>
+                        <Button Style="{StaticResource PrimaryButton}" Content="一键更新目标库" Command="{Binding OpenDeployCommand}"/>
+                    </StackPanel>
+                    <TextBlock Text="{Binding CountsText}" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"/>
+                </DockPanel>
+            </Border>
+        </Grid>
+
+        <!-- Deploy：单页确认 -->
+        <ScrollViewer Grid.Row="1" Visibility="{Binding IsDeploy, Converter={StaticResource BoolToVis}}">
+            <StackPanel Width="880" Margin="24,32" HorizontalAlignment="Center">
+                <StackPanel Visibility="{Binding ShowDeployReview, Converter={StaticResource BoolToVis}}">
+                    <TextBlock FontSize="20" FontWeight="SemiBold" Margin="0,0,0,8">
+                        <Run Text="更新 "/><Run Text="{Binding Target.Database, Mode=OneWay}"/>
+                    </TextBlock>
+                    <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,16"
+                               Text="看一眼脚本即可确认。失败不能整批回滚，建议先备份。"/>
+                    <UniformGrid Columns="3" Margin="0,0,0,12">
+                        <Border Style="{StaticResource Card}" Margin="0,0,8,0">
+                            <StackPanel>
+                                <TextBlock Text="创建" Foreground="{DynamicResource TextMuted}"/>
+                                <TextBlock Text="{Binding CreateCount, Mode=OneWay}" FontSize="22" Foreground="{DynamicResource AccentBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}" Margin="4,0">
+                            <StackPanel>
+                                <TextBlock Text="修改" Foreground="{DynamicResource TextMuted}"/>
+                                <TextBlock Text="{Binding AlterCount, Mode=OneWay}" FontSize="22" Foreground="{DynamicResource WarnBrush}"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}" Margin="8,0,0,0">
+                            <StackPanel>
+                                <TextBlock Text="删除" Foreground="{DynamicResource TextMuted}"/>
+                                <TextBlock Text="{Binding DropCount, Mode=OneWay}" FontSize="22" Foreground="{DynamicResource DangerBrush}"/>
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+                    <CheckBox Content="执行前备份目标库" IsChecked="{Binding Backup}" Margin="0,0,0,8"/>
+                    <CheckBox Content="我确认删除目标多余对象" IsChecked="{Binding ConfirmDrop}"
+                              Visibility="{Binding HasDrops, Converter={StaticResource BoolToVis}}"
+                              Foreground="{DynamicResource DangerBrush}" Margin="0,0,0,12"/>
+                    <TextBox Text="{Binding CombinedScript, Mode=OneWay}" IsReadOnly="True" Height="280"
+                             FontFamily="Consolas" FontSize="12" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+                </StackPanel>
+
+                <ItemsControl Visibility="{Binding ShowDeployResult, Converter={StaticResource BoolToVis}}"
+                              ItemsSource="{Binding DeployLogs}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" FontFamily="Consolas" Margin="0,4" TextWrapping="Wrap">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Converter={StaticResource IsErrorLog}}" Value="True">
+                                                <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <DockPanel Margin="0,20,0,0">
+                    <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}"
+                            Content="{Binding DeployNextLabel}" Command="{Binding DeployNextCommand}"/>
+                    <Button HorizontalAlignment="Left" Style="{StaticResource GhostButton}"
+                            Content="返回" Command="{Binding CancelDeployCommand}"
+                            Visibility="{Binding Deploying, Converter={StaticResource InvBoolToVis}}"/>
+                </DockPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Row="1" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,20,72"
+                Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1" CornerRadius="8" Padding="14,10"
+                Visibility="{Binding HasToast, Converter={StaticResource BoolToVis}}">
+            <TextBlock Text="{Binding Toast}" MaxWidth="360" TextWrapping="Wrap"/>
+        </Border>
+    </Grid>
+</Window>

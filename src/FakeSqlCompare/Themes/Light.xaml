@@ -1,0 +1,25 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="WindowBackground" Color="#F8FAFC"/>
+    <SolidColorBrush x:Key="HeaderBackground" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#F1F5F9"/>
+    <SolidColorBrush x:Key="SurfaceAltBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="BorderBrush" Color="#E2E8F0"/>
+    <SolidColorBrush x:Key="TextPrimary" Color="#0F172A"/>
+    <SolidColorBrush x:Key="TextMuted" Color="#475569"/>
+    <SolidColorBrush x:Key="TextFaint" Color="#64748B"/>
+    <SolidColorBrush x:Key="AccentBrush" Color="#16A34A"/>
+    <SolidColorBrush x:Key="AccentTextBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="WarnBrush" Color="#D97706"/>
+    <SolidColorBrush x:Key="DangerBrush" Color="#DC2626"/>
+    <SolidColorBrush x:Key="InfoBrush" Color="#0284C7"/>
+    <SolidColorBrush x:Key="DiffAddBrush" Color="#2416A34A"/>
+    <SolidColorBrush x:Key="DiffDelBrush" Color="#1FDC2626"/>
+    <SolidColorBrush x:Key="DiffChgBrush" Color="#24D97706"/>
+    <SolidColorBrush x:Key="ChipDiffBg" Color="#26D97706"/>
+    <SolidColorBrush x:Key="ChipSourceBg" Color="#2616A34A"/>
+    <SolidColorBrush x:Key="ChipTargetBg" Color="#26DC2626"/>
+    <SolidColorBrush x:Key="InputBackground" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="RowSelectedBrush" Color="#E2E8F0"/>
+    <SolidColorBrush x:Key="RowHoverBrush" Color="#F1F5F9"/>
+</ResourceDictionary>

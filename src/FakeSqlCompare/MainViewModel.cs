@@ -41,8 +41,8 @@ public sealed class MainViewModel : ObservableObject
 
         CompareCommand = new AsyncRelayCommand(StartCompareAsync);
         RecheckCommand = new AsyncRelayCommand(RecheckAsync);
-        TestSourceCommand = new AsyncRelayCommand(() => TestAsync(Source, SourceDatabases));
-        TestTargetCommand = new AsyncRelayCommand(() => TestAsync(Target, TargetDatabases));
+        TestSourceCommand = new AsyncRelayCommand(() => TestAsync(Source, SourceDatabases, announce: true));
+        TestTargetCommand = new AsyncRelayCommand(() => TestAsync(Target, TargetDatabases, announce: true));
         HomeCommand = new RelayCommand(GoHome);
         ThemeCommand = new RelayCommand(ToggleTheme);
         SaveProjectCommand = new RelayCommand(SaveProject);
@@ -73,6 +73,8 @@ public sealed class MainViewModel : ObservableObject
         DeployNextCommand = new AsyncRelayCommand(DeployNextAsync, CanDeployNext);
         ShowDefCommand = new RelayCommand(() => ShowScript = false);
         ShowScriptTabCommand = new RelayCommand(() => ShowScript = true);
+        ListSourceDbCommand = new AsyncRelayCommand(() => TestAsync(Source, SourceDatabases, announce: false));
+        ListTargetDbCommand = new AsyncRelayCommand(() => TestAsync(Target, TargetDatabases, announce: false));
         RestoreProjects();
     }
 
@@ -107,6 +109,8 @@ public sealed class MainViewModel : ObservableObject
     public AsyncRelayCommand DeployNextCommand { get; }
     public RelayCommand ShowDefCommand { get; }
     public RelayCommand ShowScriptTabCommand { get; }
+    public AsyncRelayCommand ListSourceDbCommand { get; }
+    public AsyncRelayCommand ListTargetDbCommand { get; }
 
     public AppPage Page
     {
@@ -311,30 +315,44 @@ public sealed class MainViewModel : ObservableObject
         RefreshCounts();
     }
 
-    private async Task TestAsync(ConnectionProfile profile, ObservableCollection<string> dbs)
+    private async Task TestAsync(ConnectionProfile profile, ObservableCollection<string> dbs, bool announce)
     {
         if (string.IsNullOrWhiteSpace(profile.Server))
         {
             ShowToast("请填写服务器");
             return;
         }
+        if (profile.IsSqlAuth && string.IsNullOrWhiteSpace(profile.User))
+        {
+            ShowToast("请填写用户名");
+            return;
+        }
+        if (!announce && profile.Tested && dbs.Count > 0)
+            return;
+        if (profile.Testing) return;
+
         profile.Testing = true;
         profile.Tested = false;
         try
         {
             var list = await ConnectionService.ListDatabasesAsync(profile);
+            var keep = profile.Database;
             dbs.Clear();
             foreach (var name in list) dbs.Add(name);
-            if (string.IsNullOrWhiteSpace(profile.Database))
+            if (string.IsNullOrWhiteSpace(keep))
             {
                 profile.Database = list.FirstOrDefault(x => x is not ("master" or "model" or "msdb")) ?? list.FirstOrDefault() ?? "";
             }
-            else if (!list.Contains(profile.Database))
+            else
             {
-                dbs.Insert(0, profile.Database);
+                if (!list.Contains(keep))
+                    dbs.Insert(0, keep);
+                profile.Database = keep;
             }
             profile.Tested = true;
-            ShowToast($"已连接，列出 {list.Count} 个数据库");
+            MirrorDatabases(profile, dbs);
+            if (announce)
+                ShowToast($"已连接，列出 {list.Count} 个数据库");
         }
         catch (Exception ex)
         {
@@ -345,6 +363,30 @@ public sealed class MainViewModel : ObservableObject
             profile.Testing = false;
         }
     }
+
+    private void MirrorDatabases(ConnectionProfile from, ObservableCollection<string> fromDbs)
+    {
+        var other = ReferenceEquals(from, Source) ? Target : Source;
+        var otherDbs = ReferenceEquals(from, Source) ? TargetDatabases : SourceDatabases;
+        if (!SameServerLogin(from, other)) return;
+        var keep = other.Database;
+        otherDbs.Clear();
+        foreach (var name in fromDbs) otherDbs.Add(name);
+        if (!string.IsNullOrWhiteSpace(keep))
+        {
+            if (!otherDbs.Contains(keep))
+                otherDbs.Insert(0, keep);
+            other.Database = keep;
+        }
+        other.Tested = true;
+    }
+
+    private static bool SameServerLogin(ConnectionProfile a, ConnectionProfile b)
+        => string.Equals(a.Server.Trim(), b.Server.Trim(), StringComparison.OrdinalIgnoreCase)
+           && string.Equals(a.Auth, b.Auth, StringComparison.Ordinal)
+           && (a.IsWindowsAuth
+               || (string.Equals(a.User, b.User, StringComparison.OrdinalIgnoreCase)
+                   && a.Password == b.Password));
 
     private async Task StartCompareAsync()
     {

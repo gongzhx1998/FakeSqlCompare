@@ -1,8 +1,8 @@
 # SQL Server 结构对比工具方案
 
-> 创建：2026-09-22 ｜ 当前版本：v2.13 ｜ 状态：🔨开发中
+> 创建：2026-09-22 ｜ 当前版本：v2.18 ｜ 状态：🔨开发中
 > 页面/模块：`src/FakeSqlCompare` WPF；真实连接 + DacFx 对比 + 脚本/部署
-> 状态说明：对象列表与并排定义之间可拖动调整高度
+> 状态说明：已发布 win-x64 单文件 exe（自包含，无需安装 .NET）
 
 ---
 
@@ -348,18 +348,19 @@ SQL Server 的 DDL **不能假设整脚本可事务回滚**（不少 `ALTER` 会
 **偏差：** 连接页密码已改为 `PasswordBox`。忽略选项尚未做独立 UI（对比时写死常用 Ignore*）。项目/连接尚未 DPAPI 落盘。
 
 <a id="sec-13"></a>
-## 【v2.13】13. 正式代码实施记录
+## 【v2.18】13. 正式代码实施记录
 
 按方案服务层落地。HTML 线框与 `MockCompareData` 演示路径已删除。
 
 | 模块 | 实现 |
 |---|---|
-| 连接 | `ConnectionService` 测连列库；`ProjectStore` 保存到 `%AppData%/FakeSqlCompare/projects.json`，密码 DPAPI |
-| 对比 | 主键/外键/默认/索引并入表脚本；说明拼 `sp_addextendedproperty`；并排定义忽略句尾逗号 |
+| 连接 | `ConnectionService` 测连列库；打开数据库下拉即列出；`ProjectStore` 保存到 `%AppData%/FakeSqlCompare/projects.json`（UTF-8 直写中文），密码 DPAPI |
+| 对比 | 主键/外键/默认/索引并入表脚本；说明拼 `sp_addextendedproperty`；并排定义忽略句尾逗号；**索引按名称配对/排序** |
 | 脚本 | 勾选后 `Result.ExcludeAll/Include` + `GenerateScript`（依赖顺序）；导出 `.sql` |
 | 部署 | 成功后**自动重新对比**；生成脚本时 Include 子节点和依赖，避免勾了表却没更新列/约束 |
-| UI | 连接下拉显示摘要；**载入**；类型芯片为表/视图/过程/函数；对象列表与并排定义之间可拖高度 |
+| UI | 连接下拉显示摘要；**载入**；类型芯片为表/视图/过程/函数；对象列表与并排定义之间可拖高度；自定义 `Assets/app.ico` |
 | 运行时 | `TargetFramework` 由 `net8.0-windows` 改为 **`net10.0-windows`**（本机 SDK 10.0.401） |
+| 打包 | `dotnet publish -p:PublishProfile=win-x64` → `dist/FakeSqlCompare.exe`（win-x64 自包含单文件，约 77MB） |
 
 **验证：** `dotnet build -c Release` 通过。本机需关掉旧进程后启动；真实对比依赖能连上的 SQL Server。
 
@@ -371,6 +372,11 @@ SQL Server 的 DDL **不能假设整脚本可事务回滚**（不少 `ALTER` 会
 
 | 版本 | 时间 | 变更内容 |
 |---|---|---|
+| v2.18 | 2026-09-23 10:43 | 发布 win-x64 自包含单文件：`dist/FakeSqlCompare.exe`，对方电脑不用装 .NET |
+| v2.17 | 2026-09-23 10:40 | 数据库下拉打开即连接并列库，不必先点「测试连接」；同源账号会同步另一侧列表 |
+| v2.16 | 2026-09-23 10:32 | `projects.json` 不再把中文/箭头写成 `\\uXXXX`；启动时若发现转义会自动重写 |
+| v2.15 | 2026-09-23 10:25 | 换成自定义应用图标：`Assets/app.ico` 接到 exe、主窗口和另存为窗口 |
+| v2.14 | 2026-09-23 10:15 | 并排定义按索引名配对：同一索引因生成顺序不同不再标成差异 |
 | v2.13 | 2026-09-22 14:42 | 工作台对象列表与并排定义之间加 GridSplitter，可拖动调整高度 |
 | v2.12 | 2026-09-22 14:35 | 并排定义忽略句尾逗号：列定义相同只因后面多一列带逗号时不再标成变更 |
 | v2.11 | 2026-09-22 14:28 | 说明（扩展属性）按 SQL Compare 拼进表脚本：`sp_addextendedproperty`，含列级 MS_Description |

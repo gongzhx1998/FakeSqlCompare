@@ -47,3 +47,37 @@ public static class PasswordBoxHelper
         box.SetValue(UpdatingProperty, false);
     }
 }
+
+public static class ComboBoxAssist
+{
+    public static readonly DependencyProperty DropDownCommandProperty =
+        DependencyProperty.RegisterAttached(
+            "DropDownCommand", typeof(System.Windows.Input.ICommand), typeof(ComboBoxAssist),
+            new PropertyMetadata(null, OnDropDownCommandChanged));
+
+    public static void SetDropDownCommand(DependencyObject obj, System.Windows.Input.ICommand? value)
+        => obj.SetValue(DropDownCommandProperty, value);
+
+    public static System.Windows.Input.ICommand? GetDropDownCommand(DependencyObject obj)
+        => (System.Windows.Input.ICommand?)obj.GetValue(DropDownCommandProperty);
+
+    private static void OnDropDownCommandChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is not ComboBox box) return;
+        box.DropDownOpened -= OnDropDownOpened;
+        if (e.NewValue is System.Windows.Input.ICommand)
+            box.DropDownOpened += OnDropDownOpened;
+    }
+
+    private static async void OnDropDownOpened(object? sender, EventArgs e)
+    {
+        if (sender is not ComboBox box) return;
+        var cmd = GetDropDownCommand(box);
+        if (cmd is AsyncRelayCommand asyncCmd)
+            await asyncCmd.ExecuteAsync();
+        else if (cmd?.CanExecute(null) == true)
+            cmd.Execute(null);
+        if (box.IsKeyboardFocusWithin && box.Items.Count > 0)
+            box.IsDropDownOpen = true;
+    }
+}

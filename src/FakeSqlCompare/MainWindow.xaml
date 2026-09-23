@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:FakeSqlCompare"
         Title="FakeSqlCompare — SQL Server 结构对比"
+        Icon="Assets/app.ico"
         Height="820" Width="1280" MinHeight="640" MinWidth="1040"
         Background="{DynamicResource WindowBackground}"
         Foreground="{DynamicResource TextPrimary}"
@@ -117,7 +118,8 @@
                             </Grid>
                             <Label Content="数据库" Margin="0,10,0,0"/>
                             <ComboBox IsEditable="True" ItemsSource="{Binding SourceDatabases}"
-                                      Text="{Binding Source.Database, UpdateSourceTrigger=PropertyChanged}"/>
+                                      Text="{Binding Source.Database, UpdateSourceTrigger=PropertyChanged}"
+                                      local:ComboBoxAssist.DropDownCommand="{Binding ListSourceDbCommand}"/>
                             <Button Margin="0,14,0,0" HorizontalAlignment="Left" Style="{StaticResource GhostButton}"
                                     Content="{Binding Source.TestLabel}" Command="{Binding TestSourceCommand}"/>
                         </StackPanel>
@@ -154,7 +156,8 @@
                             </Grid>
                             <Label Content="数据库" Margin="0,10,0,0"/>
                             <ComboBox IsEditable="True" ItemsSource="{Binding TargetDatabases}"
-                                      Text="{Binding Target.Database, UpdateSourceTrigger=PropertyChanged}"/>
+                                      Text="{Binding Target.Database, UpdateSourceTrigger=PropertyChanged}"
+                                      local:ComboBoxAssist.DropDownCommand="{Binding ListTargetDbCommand}"/>
                             <Button Margin="0,14,0,0" HorizontalAlignment="Left" Style="{StaticResource GhostButton}"
                                     Content="{Binding Target.TestLabel}" Command="{Binding TestTargetCommand}"/>
                         </StackPanel>

@@ -1,6 +1,7 @@
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -58,10 +59,12 @@ public sealed class ProjectState
 public static class ProjectStore
 {
     private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("FakeSqlCompare.conn.v1");
+    private static readonly UTF8Encoding Utf8 = new(encoderShouldEmitUTF8Identifier: false);
     private static readonly JsonSerializerOptions Json = new()
     {
         WriteIndented = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 
     private static string FilePath => Path.Combine(
@@ -73,8 +76,12 @@ public static class ProjectStore
         try
         {
             if (!File.Exists(FilePath)) return new ProjectState();
-            var state = JsonSerializer.Deserialize<ProjectState>(File.ReadAllText(FilePath), Json);
-            return state ?? new ProjectState();
+            var text = File.ReadAllText(FilePath, Utf8);
+            var state = JsonSerializer.Deserialize<ProjectState>(text, Json);
+            if (state is null) return new ProjectState();
+            if (text.Contains("\\u", StringComparison.Ordinal))
+                Save(state);
+            return state;
         }
         catch
         {
@@ -85,7 +92,7 @@ public static class ProjectStore
     public static void Save(ProjectState state)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
-        File.WriteAllText(FilePath, JsonSerializer.Serialize(state, Json));
+        File.WriteAllText(FilePath, JsonSerializer.Serialize(state, Json), Utf8);
     }
 
     public static SavedEndpoint Capture(ConnectionProfile profile) => new()

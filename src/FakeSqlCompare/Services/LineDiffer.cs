@@ -1,15 +1,23 @@
+using System.Text.RegularExpressions;
+
 namespace FakeSqlCompare;
 
 public static class LineDiffer
 {
     private const int MaxLines = 1200;
 
+    private static readonly Regex IndexNameRx = new(
+        @"CREATE\s+(?:UNIQUE\s+)?(?:NONCLUSTERED\s+|CLUSTERED\s+)?INDEX\s+(?:\[(?<n>[^\]]+)\]|(?<n>\S+))",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex ConstraintNameRx = new(
+        @"\bCONSTRAINT\s+(?:\[(?<n>[^\]]+)\]|(?<n>\S+))",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
     public static (IReadOnlyList<SqlLine> Source, IReadOnlyList<SqlLine> Target) Build(string? sourceSql, string? targetSql)
     {
         var a = Split(sourceSql);
         var b = Split(targetSql);
-        var aKey = a.Select(CompareKey).ToArray();
-        var bKey = b.Select(CompareKey).ToArray();
         if (a.Length == 0 && b.Length == 0)
         {
             var empty = new SqlLine { Kind = LineKind.Eq, Text = "-- （无脚本）" };
@@ -29,6 +37,89 @@ public static class LineDiffer
             return (Plain(a), Plain(b));
         }
 
+        var aBatches = SplitBatches(a);
+        var bBatches = SplitBatches(b);
+        if (aBatches.Count <= 1 && bBatches.Count <= 1)
+            return AlignLines(a, b);
+
+        return AlignBatches(aBatches, bBatches);
+    }
+
+    private static (IReadOnlyList<SqlLine> Source, IReadOnlyList<SqlLine> Target) AlignBatches(
+        List<string[]> aBatches, List<string[]> bBatches)
+    {
+        var used = new bool[bBatches.Count];
+        var pairs = new List<(string[]? Src, string[]? Tgt)>(aBatches.Count + bBatches.Count);
+        for (var i = 0; i < aBatches.Count; i++)
+        {
+            var id = BatchIdentity(aBatches[i]);
+            var j = -1;
+            for (var k = 0; k < bBatches.Count; k++)
+            {
+                if (used[k]) continue;
+                if (string.Equals(BatchIdentity(bBatches[k]), id, StringComparison.OrdinalIgnoreCase))
+                {
+                    j = k;
+                    break;
+                }
+            }
+            if (j >= 0)
+            {
+                used[j] = true;
+                pairs.Add((aBatches[i], bBatches[j]));
+            }
+            else
+            {
+                pairs.Add((aBatches[i], null));
+            }
+        }
+        for (var k = 0; k < bBatches.Count; k++)
+        {
+            if (!used[k])
+                pairs.Add((null, bBatches[k]));
+        }
+
+        var src = new List<SqlLine>();
+        var tgt = new List<SqlLine>();
+        for (var p = 0; p < pairs.Count; p++)
+        {
+            if (p > 0)
+            {
+                src.Add(new SqlLine { Kind = LineKind.Eq, Text = "GO" });
+                tgt.Add(new SqlLine { Kind = LineKind.Eq, Text = "GO" });
+            }
+
+            var (sa, sb) = pairs[p];
+            if (sa is not null && sb is not null)
+            {
+                var aligned = AlignLines(sa, sb);
+                src.AddRange(aligned.Source);
+                tgt.AddRange(aligned.Target);
+            }
+            else if (sa is not null)
+            {
+                foreach (var line in sa)
+                {
+                    src.Add(new SqlLine { Kind = LineKind.Add, Text = line });
+                    tgt.Add(new SqlLine { Kind = LineKind.Del, Text = "（无对应行）" });
+                }
+            }
+            else if (sb is not null)
+            {
+                foreach (var line in sb)
+                {
+                    src.Add(new SqlLine { Kind = LineKind.Del, Text = "（无对应行）" });
+                    tgt.Add(new SqlLine { Kind = LineKind.Add, Text = line });
+                }
+            }
+        }
+        return (src, tgt);
+    }
+
+    private static (IReadOnlyList<SqlLine> Source, IReadOnlyList<SqlLine> Target) AlignLines(string[] a, string[] b)
+    {
+        var aKey = a.Select(CompareKey).ToArray();
+        var bKey = b.Select(CompareKey).ToArray();
         var lcs = Lcs(aKey, bKey);
         var src = new List<SqlLine>();
         var tgt = new List<SqlLine>();
@@ -68,6 +159,54 @@ public static class LineDiffer
     {
         if (string.IsNullOrWhiteSpace(sql)) return [];
         return sql.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+    }
+
+    private static List<string[]> SplitBatches(string[] lines)
+    {
+        var batches = new List<string[]>();
+        var cur = new List<string>();
+        foreach (var line in lines)
+        {
+            if (IsGo(line))
+            {
+                if (cur.Count > 0)
+                {
+                    batches.Add(cur.ToArray());
+                    cur.Clear();
+                }
+                continue;
+            }
+            cur.Add(line);
+        }
+        if (cur.Count > 0)
+            batches.Add(cur.ToArray());
+        return batches;
+    }
+
+    private static bool IsGo(string line)
+    {
+        var t = line.Trim();
+        if (t.EndsWith(';')) t = t[..^1].TrimEnd();
+        return t.Equals("GO", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// 索引/约束按名称配对，避免 DacFx 子对象顺序不同时把同一条索引对到别的行上。
+    /// </summary>
+    private static string BatchIdentity(string[] lines)
+    {
+        var text = string.Join('\n', lines.Select(CompareKey));
+        var index = IndexNameRx.Match(text);
+        if (index.Success)
+            return "INDEX:" + index.Groups["n"].Value;
+        var constraint = ConstraintNameRx.Match(text);
+        if (constraint.Success)
+            return "CONSTRAINT:" + constraint.Groups["n"].Value;
+        if (text.Contains("CREATE TABLE", StringComparison.OrdinalIgnoreCase))
+            return "TABLE";
+        if (text.Contains("CREATE VIEW", StringComparison.OrdinalIgnoreCase))
+            return "VIEW";
+        return "SQL:" + text;
     }
 
     /// <summary>

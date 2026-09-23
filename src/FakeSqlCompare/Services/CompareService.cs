@@ -422,7 +422,8 @@ public static class CompareService
             }
         }
 
-        foreach (var fk in children.Where(c => c.ObjectType?.Name == "ForeignKeyConstraint"))
+        foreach (var fk in children.Where(c => c.ObjectType?.Name == "ForeignKeyConstraint")
+                     .OrderBy(LastPart, StringComparer.OrdinalIgnoreCase))
         {
             if (!IsDisabled(fk)) continue;
             var fkName = LastPart(fk);
@@ -430,7 +431,8 @@ public static class CompareService
             batches.Add($"ALTER TABLE {quoted} NOCHECK CONSTRAINT [{fkName}];");
         }
 
-        foreach (var index in children.Where(c => c.ObjectType?.Name == "Index"))
+        foreach (var index in children.Where(c => c.ObjectType?.Name == "Index")
+                     .OrderBy(LastPart, StringComparer.OrdinalIgnoreCase))
         {
             var n = LastPart(index);
             if (!string.IsNullOrEmpty(n) && reservedIndexNames.Contains(n)) continue;
@@ -448,12 +450,15 @@ public static class CompareService
     private static IEnumerable<string> ScriptExtendedProperties(TSqlObject owner)
     {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var list = new List<string>();
         foreach (var (host, ep) in EnumerateExtendedProperties(owner))
         {
             var sql = FormatExtendedProperty(owner, host, ep);
             if (string.IsNullOrWhiteSpace(sql) || !seen.Add(sql)) continue;
-            yield return sql;
+            list.Add(sql);
         }
+        list.Sort(StringComparer.OrdinalIgnoreCase);
+        return list;
     }
 
     private static IEnumerable<(TSqlObject Host, TSqlObject Ep)> EnumerateExtendedProperties(TSqlObject owner)

@@ -2,6 +2,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace FakeSqlCompare;
 
@@ -22,6 +23,21 @@ public sealed class SavedProject : ObservableObject
     public DateTime SavedAt { get; set; } = DateTime.Now;
     public SavedEndpoint Source { get; set; } = new();
     public SavedEndpoint Target { get; set; } = new();
+
+    [JsonIgnore]
+    public string Summary
+    {
+        get
+        {
+            static string One(SavedEndpoint e)
+                => string.IsNullOrWhiteSpace(e.Database) ? (e.Server ?? "") : $"{e.Server}.{e.Database}";
+            return $"{One(Source)}  →  {One(Target)}";
+        }
+    }
+
+    public void NotifySummary() => Raise(nameof(Summary));
+
+    public override string ToString() => string.IsNullOrWhiteSpace(Name) ? "未命名连接" : Name;
 
     public static string MakeName(ConnectionProfile source, ConnectionProfile target)
     {
@@ -100,6 +116,7 @@ public static class ProjectStore
         project.SavedAt = DateTime.Now;
         project.Source = Capture(source);
         project.Target = Capture(target);
+        project.NotifySummary();
     }
 
     private static string Protect(string? plain)

@@ -8,6 +8,8 @@ public static class LineDiffer
     {
         var a = Split(sourceSql);
         var b = Split(targetSql);
+        var aKey = a.Select(CompareKey).ToArray();
+        var bKey = b.Select(CompareKey).ToArray();
         if (a.Length == 0 && b.Length == 0)
         {
             var empty = new SqlLine { Kind = LineKind.Eq, Text = "-- （无脚本）" };
@@ -27,7 +29,7 @@ public static class LineDiffer
             return (Plain(a), Plain(b));
         }
 
-        var lcs = Lcs(a, b);
+        var lcs = Lcs(aKey, bKey);
         var src = new List<SqlLine>();
         var tgt = new List<SqlLine>();
         int i = 0, j = 0, k = 0;
@@ -66,6 +68,16 @@ public static class LineDiffer
     {
         if (string.IsNullOrWhiteSpace(sql)) return [];
         return sql.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+    }
+
+    /// <summary>
+    /// CREATE TABLE 最后一列没有逗号，中间列有逗号。只差句尾逗号时不算变更。
+    /// </summary>
+    private static string CompareKey(string line)
+    {
+        var t = line.TrimEnd();
+        if (t.EndsWith(',')) t = t[..^1].TrimEnd();
+        return t;
     }
 
     private static List<(int, int)> Lcs(string[] a, string[] b)

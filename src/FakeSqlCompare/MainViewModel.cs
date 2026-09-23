@@ -47,6 +47,7 @@ public sealed class MainViewModel : ObservableObject
         ThemeCommand = new RelayCommand(ToggleTheme);
         SaveProjectCommand = new RelayCommand(SaveProject);
         SaveProjectAsCommand = new RelayCommand(SaveProjectAs);
+        LoadProjectCommand = new RelayCommand(LoadSelectedProject, () => SelectedProject is not null);
         SwapSidesCommand = new AsyncRelayCommand(SwapSidesAsync, () => Page is AppPage.Connect or AppPage.Workspace);
         DeleteProjectCommand = new RelayCommand(DeleteProject, () => SelectedProject is not null);
         SetTypeCommand = new RelayCommand(p => { TypeFilter = p?.ToString() ?? "全部"; });
@@ -92,6 +93,7 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand ThemeCommand { get; }
     public RelayCommand SaveProjectCommand { get; }
     public RelayCommand SaveProjectAsCommand { get; }
+    public RelayCommand LoadProjectCommand { get; }
     public AsyncRelayCommand SwapSidesCommand { get; }
     public RelayCommand DeleteProjectCommand { get; }
     public RelayCommand SetTypeCommand { get; }
@@ -144,9 +146,9 @@ public sealed class MainViewModel : ObservableObject
             if (!Set(ref _selectedProject, value)) return;
             Raise(nameof(HasSelectedProject));
             DeleteProjectCommand.RaiseCanExecuteChanged();
+            LoadProjectCommand.RaiseCanExecuteChanged();
             if (_loadingProject || value is null) return;
-            ProjectStore.Apply(Source, value.Source);
-            ProjectStore.Apply(Target, value.Target);
+            ApplySavedProject(value);
         }
     }
 
@@ -448,6 +450,27 @@ public sealed class MainViewModel : ObservableObject
         ProjectStore.Fill(SelectedProject, Source, Target);
         PersistSession();
         ShowToast("已保存 " + SelectedProject.Name);
+    }
+
+    public void LoadSelectedProject()
+    {
+        if (SelectedProject is null) return;
+        ApplySavedProject(SelectedProject);
+        ShowToast("已载入 " + SelectedProject.Name);
+    }
+
+    private void ApplySavedProject(SavedProject project)
+    {
+        ProjectStore.Apply(Source, project.Source);
+        ProjectStore.Apply(Target, project.Target);
+        EnsureDatabaseListed(SourceDatabases, Source.Database);
+        EnsureDatabaseListed(TargetDatabases, Target.Database);
+    }
+
+    private static void EnsureDatabaseListed(ObservableCollection<string> dbs, string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return;
+        if (!dbs.Contains(name)) dbs.Insert(0, name);
     }
 
     private void SaveProjectAs()

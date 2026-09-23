@@ -59,13 +59,26 @@
                                 Command="{Binding SaveProjectCommand}"/>
                         <Button Style="{StaticResource GhostButton}" Content="另存为" Margin="8,0,0,0"
                                 Command="{Binding SaveProjectAsCommand}"/>
+                        <Button Style="{StaticResource GhostButton}" Content="载入" Margin="8,0,0,0"
+                                Command="{Binding LoadProjectCommand}"
+                                Visibility="{Binding HasSelectedProject, Converter={StaticResource BoolToVis}}"/>
                         <Button Style="{StaticResource GhostButton}" Content="删除" Margin="8,0,0,0"
                                 Command="{Binding DeleteProjectCommand}"
                                 Visibility="{Binding HasSelectedProject, Converter={StaticResource BoolToVis}}"/>
                     </StackPanel>
                     <Grid Margin="0,0,12,0">
-                        <ComboBox ItemsSource="{Binding Projects}" DisplayMemberPath="Name"
-                                  SelectedItem="{Binding SelectedProject}"/>
+                        <ComboBox ItemsSource="{Binding Projects}" SelectedItem="{Binding SelectedProject}"
+                                  MinHeight="40">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,2">
+                                        <TextBlock Text="{Binding Name}"/>
+                                        <TextBlock Text="{Binding Summary}" FontSize="11"
+                                                   Foreground="{DynamicResource TextMuted}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
                         <TextBlock Text="暂无已保存的连接" IsHitTestVisible="False"
                                    VerticalAlignment="Center" Margin="12,0,32,0"
                                    Foreground="{DynamicResource TextFaint}"
@@ -199,8 +212,9 @@
         <Grid Grid.Row="1" Visibility="{Binding IsWorkspace, Converter={StaticResource BoolToVis}}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="48"/>
-                <RowDefinition Height="*" MinHeight="160"/>
-                <RowDefinition Height="0.9*" MinHeight="220"/>
+                <RowDefinition Height="*" MinHeight="120"/>
+                <RowDefinition Height="8"/>
+                <RowDefinition Height="0.9*" MinHeight="140"/>
                 <RowDefinition Height="56"/>
             </Grid.RowDefinitions>
             <Border Background="{DynamicResource HeaderBackground}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
@@ -327,7 +341,10 @@
                 </ListBox>
             </DockPanel>
 
-            <Border Grid.Row="2" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0"
+            <GridSplitter Grid.Row="2" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
+                         Cursor="SizeNS" ToolTip="拖动调整定义区高度"/>
+
+            <Border Grid.Row="3"
                     Background="{DynamicResource SurfaceAltBrush}">
                 <DockPanel>
                     <DockPanel DockPanel.Dock="Top" Margin="12,8">
@@ -438,7 +455,7 @@
                 </DockPanel>
             </Border>
 
-            <Border Grid.Row="3" Background="{DynamicResource HeaderBackground}"
+            <Border Grid.Row="4" Background="{DynamicResource HeaderBackground}"
                     BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
                 <DockPanel Margin="16,0">
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">

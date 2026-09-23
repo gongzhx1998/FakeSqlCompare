@@ -48,7 +48,7 @@ public sealed class MainViewModel : ObservableObject
         SaveProjectCommand = new RelayCommand(SaveProject);
         SaveProjectAsCommand = new RelayCommand(SaveProjectAs);
         LoadProjectCommand = new RelayCommand(LoadSelectedProject, () => SelectedProject is not null);
-        SwapSidesCommand = new AsyncRelayCommand(SwapSidesAsync, () => Page is AppPage.Connect or AppPage.Workspace);
+        SwapSidesCommand = new RelayCommand(SwapSides, () => Page is AppPage.Connect);
         DeleteProjectCommand = new RelayCommand(DeleteProject, () => SelectedProject is not null);
         SetTypeCommand = new RelayCommand(p => { TypeFilter = p?.ToString() ?? "全部"; });
         SetStatusCommand = new RelayCommand(p => { StatusFilter = p?.ToString() ?? "diff"; });
@@ -96,7 +96,7 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand SaveProjectCommand { get; }
     public RelayCommand SaveProjectAsCommand { get; }
     public RelayCommand LoadProjectCommand { get; }
-    public AsyncRelayCommand SwapSidesCommand { get; }
+    public RelayCommand SwapSidesCommand { get; }
     public RelayCommand DeleteProjectCommand { get; }
     public RelayCommand SetTypeCommand { get; }
     public RelayCommand SetStatusCommand { get; }
@@ -559,7 +559,7 @@ public sealed class MainViewModel : ObservableObject
         return true;
     }
 
-    private async Task SwapSidesAsync()
+    private void SwapSides()
     {
         var snapshot = new ConnectionProfile();
         snapshot.CopyFrom(Source);
@@ -574,8 +574,6 @@ public sealed class MainViewModel : ObservableObject
 
         PersistSession();
         ShowToast("已互换源和目标");
-        if (Page is AppPage.Workspace)
-            await StartCompareAsync();
     }
 
     private void DeleteProject()

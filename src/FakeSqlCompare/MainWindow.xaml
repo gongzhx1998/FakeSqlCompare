@@ -241,7 +241,6 @@
                         </Border>
                     </StackPanel>
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button Style="{StaticResource GhostButton}" Content="互换源/目标" Command="{Binding SwapSidesCommand}" Margin="0,0,8,0"/>
                         <Button Style="{StaticResource GhostButton}" Content="重新对比" Command="{Binding RecheckCommand}" Margin="0,0,8,0"/>
                         <Button Style="{StaticResource GhostButton}" Content="勾选安全差异" Command="{Binding SelectSafeCommand}" Margin="0,0,8,0"/>
                         <Button Style="{StaticResource GhostButton}" Content="清空勾选" Command="{Binding ClearSelectCommand}"/>
